@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:18
+    container_name: pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: appdb
+    ports:
+      - "5433:5432"
+    volumes:
+      # Postgres 18: mount at /var/lib/postgresql, not .../data
+      - pgdata:/var/lib/postgresql
+      # Once-only scripts (official image feature)
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+      # Every-start scripts (run by the wrapper)
+      - ./startup:/docker-entrypoint-startup.d:ro
+      - ./custom-entrypoint.sh:/custom-entrypoint.sh:ro
+    entrypoint: ["bash", "/custom-entrypoint.sh"]
+    command: ["postgres"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
